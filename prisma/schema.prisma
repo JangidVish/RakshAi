@@ -1,0 +1,102 @@
+// RakshAI — Prisma schema
+// Models cover Phases 1-3 for the MVP. Phase 4-8 models can be added later.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BUYER
+  VENDOR
+}
+
+enum RiskTier {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VendorStatus {
+  DISCOVERED // Phase 1: found, not yet engaged
+  INVITED // Phase 2: invite sent
+  NDA_SIGNED // Phase 2: NDA accepted
+  QUESTIONNAIRE_SENT // Phase 3: questionnaire in progress
+  PENDING_REVIEW // Phase 3: submitted, awaiting buyer decision
+  APPROVED // Phase 3: approved for access
+  REMEDIATION // Phase 3: sent back for fixes
+  OFFBOARDED // Phase 8 (future)
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String // bcrypt hash
+  name      String
+  role      Role
+  company   String?
+  createdAt DateTime @default(now())
+
+  // A vendor user is linked to exactly one Vendor record
+  vendor Vendor? @relation(fields: [vendorId], references: [id])
+  vendorId String?
+
+  @@index([role])
+}
+
+model Vendor {
+  id          String       @id @default(cuid())
+  name        String
+  domain      String? // e.g. acme.com
+  category    String? // e.g. "Cloud Infrastructure"
+  riskTier    RiskTier     @default(MEDIUM)
+  aiExposure  Int          @default(0) // 0-100 %
+  status      VendorStatus @default(DISCOVERED)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  users         User[]
+  nda           Nda?
+  questionnaire Questionnaire?
+  riskSummary   RiskSummary?
+
+  @@index([status])
+  @@index([riskTier])
+}
+
+model Nda {
+  id         String   @id @default(cuid())
+  vendor     Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId   String   @unique
+  accepted   Boolean  @default(false)
+  acceptedAt DateTime?
+  acceptedBy String? // email of the vendor user who accepted
+  createdAt  DateTime @default(now())
+}
+
+model Questionnaire {
+  id          String    @id @default(cuid())
+  vendor      Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId    String    @unique
+  // answers stored as JSON: { section: { question: answer } }
+  answers     Json      @default("{}")
+  submitted   Boolean   @default(false)
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model RiskSummary {
+  id        String   @id @default(cuid())
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId  String   @unique
+  summary   String // Claude-generated summary text (Phase 3, Week 3)
+  tier      RiskTier
+  gaps      Json     @default("[]") // list of gap flags
+  createdAt DateTime @default(now())
+}
