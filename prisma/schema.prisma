@@ -52,11 +52,13 @@ model User {
 model Vendor {
   id          String       @id @default(cuid())
   name        String
-  domain      String? // e.g. acme.com
+  domain      String?      @unique // e.g. acme.com — unique so CSV import can upsert deterministically
   category    String? // e.g. "Cloud Infrastructure"
   riskTier    RiskTier     @default(MEDIUM)
   aiExposure  Int          @default(0) // 0-100 %
   status      VendorStatus @default(DISCOVERED)
+  remediationNote String?  // set when a buyer requests remediation
+  reviewedAt      DateTime? // when the buyer approved / requested remediation
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -64,9 +66,23 @@ model Vendor {
   nda           Nda?
   questionnaire Questionnaire?
   riskSummary   RiskSummary?
+  invites       VendorInvite[]
 
   @@index([status])
   @@index([riskTier])
+}
+
+model VendorInvite {
+  id        String    @id @default(cuid())
+  token     String    @unique // sha256 hash of the raw token; raw token only lives in the emailed link
+  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId  String
+  email     String // contact the invite was sent to
+  expiresAt DateTime
+  usedAt    DateTime? // set once the invite is redeemed (single-use)
+  createdAt DateTime  @default(now())
+
+  @@index([vendorId])
 }
 
 model Nda {
@@ -95,8 +111,10 @@ model RiskSummary {
   id        String   @id @default(cuid())
   vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   vendorId  String   @unique
-  summary   String // Claude-generated summary text (Phase 3, Week 3)
+  summary   String // AI-generated summary text (Phase 3, Week 3)
   tier      RiskTier
+  topRisks  Json     @default("[]") // top risks, most severe first
   gaps      Json     @default("[]") // list of gap flags
+  source    String   @default("openai") // "openai" | "stub"
   createdAt DateTime @default(now())
 }

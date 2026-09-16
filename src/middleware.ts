@@ -16,7 +16,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    return NextResponse.next();
+    // Expose the current path to server components (layouts can't read it
+    // directly) so the vendor layout can enforce the NDA gate.
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", path);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   },
   {
     callbacks: {

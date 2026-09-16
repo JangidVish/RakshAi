@@ -4,6 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { hashInviteToken } from "@/lib/invite";
 
 // Constant-time string compare that never short-circuits on length.
 function safeEqual(a: string, b: string): boolean {
@@ -27,7 +28,8 @@ const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["BUYER", "VENDOR"]),
   company: z.string().optional(),
-  inviteCode: z.string().optional(),
+  inviteCode: z.string().optional(), // buyer gate
+  inviteToken: z.string().optional(), // vendor invite link token
 });
 
 export async function POST(req: NextRequest) {
@@ -55,7 +57,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, password, role, company, inviteCode } = parsed.data;
+  const { name, email, password, role, company, inviteCode, inviteToken } =
+    parsed.data;
 
   // Buyer accounts are privileged (full vendor inventory access), so they are
   // gated behind a server-side invite code. Vendors may self-register freely —
@@ -89,16 +92,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // A vendor may arrive via an invite link. If so, validate the token and link
+  // the new account to that Vendor record. Validation happens before the write
+  // so we never create an orphan account against a bad token.
+  let linkedVendorId: string | null = null;
+  if (role === "VENDOR" && inviteToken) {
+    const invite = await prisma.vendorInvite.findUnique({
+      where: { token: hashInviteToken(inviteToken) },
+    });
+    if (!invite || invite.usedAt || invite.expiresAt.getTime() < Date.now()) {
+      return NextResponse.json(
+        { error: "This invite link is invalid or has expired." },
+        { status: 410 }
+      );
+    }
+    linkedVendorId = invite.vendorId;
+  }
+
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.user.create({
-    data: {
-      name,
-      email: normalizedEmail,
-      password: passwordHash,
-      role,
-      company,
-    },
+  // Create the user and burn the invite atomically so a token can't be redeemed
+  // twice via a race.
+  await prisma.$transaction(async (tx) => {
+    await tx.user.create({
+      data: {
+        name,
+        email: normalizedEmail,
+        password: passwordHash,
+        role,
+        company,
+        ...(linkedVendorId ? { vendorId: linkedVendorId } : {}),
+      },
+    });
+    if (role === "VENDOR" && inviteToken && linkedVendorId) {
+      await tx.vendorInvite.update({
+        where: { token: hashInviteToken(inviteToken) },
+        data: { usedAt: new Date() },
+      });
+    }
   });
 
   return NextResponse.json({ ok: true }, { status: 201 });

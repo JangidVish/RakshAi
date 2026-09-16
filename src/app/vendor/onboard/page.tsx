@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { CheckCircle2, Circle, Clock, MailQuestion } from "lucide-react";
+import { CheckCircle2, Circle, Clock, MailQuestion, ArrowRight } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NdaAcceptForm } from "@/components/nda-accept-form";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +79,37 @@ export default async function VendorOnboardPage() {
           Status: {vendor.status.replace(/_/g, " ")}
         </span>
       </header>
+
+      {/* Active action: NDA first, then questionnaire. */}
+      {!vendor.nda?.accepted ? (
+        <div className="mb-8">
+          <NdaAcceptForm />
+        </div>
+      ) : !vendor.questionnaire?.submitted ? (
+        <div className="mb-8 flex items-center justify-between rounded-xl border border-signal/30 bg-signal-soft p-5">
+          <div>
+            <p className="text-sm font-medium text-ink">
+              NDA signed — next, complete the security questionnaire.
+            </p>
+            <p className="text-xs text-ink-muted">
+              Four sections. Your progress saves automatically.
+            </p>
+          </div>
+          <Link
+            href="/vendor/questionnaire"
+            className="flex items-center gap-2 rounded-lg bg-signal px-4 py-2.5 text-sm font-medium text-white transition hover:bg-signal-hover"
+          >
+            Start questionnaire
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-8 rounded-xl border border-tier-low/30 bg-tier-lowbg p-5">
+          <p className="text-sm font-medium text-tier-low">
+            All steps complete — your submission is with the buyer for review.
+          </p>
+        </div>
+      )}
 
       <ol className="space-y-3">
         {steps.map((step) => {

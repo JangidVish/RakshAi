@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Search, Inbox, Loader2 } from "lucide-react";
 import {
   tierStyles,
@@ -122,7 +123,12 @@ export function VendorTable() {
               {filtered.map((v) => (
                 <tr key={v.id} className="transition hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-ink">{v.name}</div>
+                    <Link
+                      href={`/buyer/vendors/${v.id}`}
+                      className="font-medium text-ink hover:text-signal hover:underline"
+                    >
+                      {v.name}
+                    </Link>
                     {v.domain && (
                       <div className="text-xs text-ink-muted">{v.domain}</div>
                     )}

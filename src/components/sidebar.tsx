@@ -6,26 +6,29 @@ import { signOut } from "next-auth/react";
 import {
   ShieldCheck,
   LayoutDashboard,
-  Users,
   Activity,
   FileWarning,
-  Lock,
+  Wrench,
+  Repeat,
   LogOut,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/buyer/dashboard", label: "Dashboard", icon: LayoutDashboard, live: true },
-  { href: "/buyer/vendors", label: "Vendors", icon: Users, live: true },
-  { href: "/buyer/monitoring", label: "Monitoring", icon: Activity, live: false },
-  { href: "/buyer/exposure", label: "Exposure & AI-SPM", icon: FileWarning, live: false },
+  { href: "/buyer/dashboard", label: "Dashboard", icon: LayoutDashboard, live: true, tooltip: "" },
+  { href: "/buyer/monitoring", label: "Monitoring", icon: Activity, live: true, tooltip: "" },
+  { href: "/buyer/exposure", label: "Exposure & AI-SPM", icon: FileWarning, live: false, tooltip: "Phase 4 — coming soon" },
+  { href: "/buyer/remediation", label: "Remediation", icon: Wrench, live: false, tooltip: "Phase 6 — coming soon" },
+  { href: "/buyer/continuous", label: "Continuous Trust", icon: Repeat, live: false, tooltip: "Phase 7 — coming soon" },
+  { href: "/buyer/offboarding", label: "Offboarding", icon: LogOut, live: false, tooltip: "Phase 8 — coming soon" },
 ];
 
 export function Sidebar({ userName }: { userName: string }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-slate-200 bg-white">
+    <aside className="hidden h-screen w-60 flex-col border-r border-slate-200 bg-white lg:flex">
       <div className="flex items-center gap-2 px-6 py-5">
         <ShieldCheck className="h-6 w-6 text-signal" />
         <span className="text-lg font-semibold tracking-tight text-ink">RakshAI</span>
@@ -41,7 +44,7 @@ export function Sidebar({ userName }: { userName: string }) {
               <div
                 key={item.href}
                 className="flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-400"
-                title="Coming soon"
+                title={item.tooltip || "Coming soon"}
               >
                 <span className="flex items-center gap-3">
                   <Icon className="h-4 w-4" />
