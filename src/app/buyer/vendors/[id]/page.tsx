@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { QUESTIONNAIRE } from "@/lib/questionnaire-config";
 import { tierStyles, statusLabels, statusStyles } from "@/lib/utils";
 import { RiskReviewPanel } from "@/components/risk-review-panel";
+import { InviteVendorPanel } from "@/components/invite-vendor-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,12 @@ export default async function VendorDetailPage({
 }) {
   const vendor = await prisma.vendor.findUnique({
     where: { id: params.id },
-    include: { nda: true, questionnaire: true, riskSummary: true },
+    include: {
+      nda: true,
+      questionnaire: true,
+      riskSummary: true,
+      _count: { select: { users: true } },
+    },
   });
 
   if (!vendor) notFound();
@@ -154,6 +160,13 @@ export default async function VendorDetailPage({
 
         {/* Sidebar column */}
         <div className="space-y-6">
+          <InviteVendorPanel
+            vendorId={vendor.id}
+            vendorName={vendor.name}
+            domain={vendor.domain}
+            hasAccount={vendor._count.users > 0}
+          />
+
           <div className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="mb-4 flex items-center gap-2">
               <Building2 className="h-5 w-5 text-signal" />

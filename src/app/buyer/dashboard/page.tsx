@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { VendorTable } from "@/components/vendor-table";
+import { AddVendorButton } from "@/components/add-vendor-button";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-ink">Vendor & AI map</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          One consolidated inventory — risk tier, AI exposure, and lifecycle
-          status.
-        </p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-ink">Vendor & AI map</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            One consolidated inventory — risk tier, AI exposure, and lifecycle
+            status.
+          </p>
+        </div>
+        <AddVendorButton />
       </header>
 
       {/* Summary cards */}
