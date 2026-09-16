@@ -17,8 +17,16 @@ export function hashInviteToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-/** Build the acceptance link for an emailed invite. */
+/**
+ * Build the acceptance link for an emailed invite.
+ *
+ * Points at /register, which is public — an invitee has no account yet, so the
+ * link must land somewhere reachable while signed out. Anything under /vendor
+ * sits behind the role guard in middleware.ts and would bounce them to /login.
+ * The register page reads ?token, validates it via GET /api/invite/[token],
+ * and posts it back as `inviteToken` to link the new account to the vendor.
+ */
 export function inviteUrl(rawToken: string): string {
   const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  return `${base}/vendor/accept?token=${rawToken}`;
+  return `${base}/register?token=${rawToken}`;
 }

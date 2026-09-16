@@ -274,7 +274,7 @@ For the stage demo, follow [`DEMO_SCRIPT.md`](../operations/DEMO_SCRIPT.md) (5�
 
 **Week 2 — onboarding**
 - CSV bulk vendor import (`POST /api/vendors/import`)
-- Vendor invite flow: tokenized link + email
+- Vendor invite flow: tokenized link + email, redeemable end to end via `/register?token=...`
 - NDA acceptance page + timestamp
 - NDA route guard (no bypass)
 - Questionnaire UI — 4 dynamic sections, autosave draft
@@ -303,24 +303,21 @@ For the stage demo, follow [`DEMO_SCRIPT.md`](../operations/DEMO_SCRIPT.md) (5�
 **P0 — blocking ship / demo**
 
 1. **Final Vercel deploy + custom domain + production QA** — the one open sprint task. [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) is written and ready; nobody has executed it. Covers: import the repo, set 8 env vars, `prisma db push` against prod, add the domain, update `NEXTAUTH_URL`, run the 7-item post-deploy checklist.
-2. **The invite link is a dead end.** `src/lib/invite.ts` builds `${NEXTAUTH_URL}/vendor/accept?token=...`, but **`src/app/vendor/accept/` does not exist** — and `/vendor/*` is inside the middleware matcher, so an unauthenticated invitee is bounced to `/login`. The backend is complete (`GET /api/invite/[token]` validates; `POST /api/register` accepts `inviteToken`, links `user.vendorId`, marks `usedAt`), but **`src/app/register/page.tsx` never reads `?token=` and never sends `inviteToken`.**
-   **Fix:** either build `/vendor/accept` as a public route (and exclude it from the middleware matcher), or point `inviteUrl()` at `/register?token=...` and have the register page read the token, call `GET /api/invite/[token]` to prefill, and pass `inviteToken` on submit. **Until this is fixed, vendor self-onboarding only works via a manually seeded linked vendor user.**
-3. **Add `RESEND_API_KEY` and `MAIL_FROM` to `.env.example`** — documented in [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) but missing from the template, so new devs silently get console-only email.
 
 **P1 — production hardening**
 
-4. **Rate limiter is in-memory.** State lives in the process, so counters are **not shared across serverless instances** — on Vercel it is effectively ineffective under load. Swap `src/lib/rate-limit.ts` for Upstash Redis; the interface was designed for that swap.
-5. **No migration history.** The project uses `prisma db push` with no `prisma/migrations/`. Before real production data exists, switch to `prisma migrate` so schema changes are reviewable and reversible.
-6. **No test suite at all.** No Jest/Vitest/Playwright, no CI. All QA to date has been manual. Highest-value first tests: `missingRequired()`, `stubSummary()` scoring, the invite token hash/expiry/single-use path, and a Playwright run of the E2E chain in §10.
-7. **Questionnaire autosave is last-write-wins** (800ms debounce, JSON merge). Known, accepted tech debt — only matters if two people ever edit one vendor's questionnaire concurrently.
-8. **No audit log.** `reviewedAt` / `remediationNote` capture only the latest decision; there is no history of who changed what, when.
+2. **Rate limiter is in-memory.** State lives in the process, so counters are **not shared across serverless instances** — on Vercel it is effectively ineffective under load. Swap `src/lib/rate-limit.ts` for Upstash Redis; the interface was designed for that swap.
+3. **No migration history.** The project uses `prisma db push` with no `prisma/migrations/`. Before real production data exists, switch to `prisma migrate` so schema changes are reviewable and reversible.
+4. **No test suite at all.** No Jest/Vitest/Playwright, no CI. All QA to date has been manual. Highest-value first tests: `missingRequired()`, `stubSummary()` scoring, the invite token hash/expiry/single-use path, and a Playwright run of the E2E chain in §10.
+5. **Questionnaire autosave is last-write-wins** (800ms debounce, JSON merge). Known, accepted tech debt — only matters if two people ever edit one vendor's questionnaire concurrently.
+6. **No audit log.** `reviewedAt` / `remediationNote` capture only the latest decision; there is no history of who changed what, when.
 
 **P2 — known product gaps**
 
-9. **Monitoring trend line is seeded, not real.** There is **no historical time-series store** — risk scores are point-in-time only. Real monitoring needs a `RiskSnapshot`-style table written on every tier change.
-10. Buyer dashboard status updates on reload, not in real time.
-11. Vendor detail "approval history" shows current state, not a full timeline.
-12. `OFFBOARDED` exists in the enum with no UI behind it.
+7. **Monitoring trend line is seeded, not real.** There is **no historical time-series store** — risk scores are point-in-time only. Real monitoring needs a `RiskSnapshot`-style table written on every tier change.
+8. Buyer dashboard status updates on reload, not in real time.
+9. Vendor detail "approval history" shows current state, not a full timeline.
+10. `OFFBOARDED` exists in the enum with no UI behind it.
 
 ### 🔭 Further roadmap — what we're building next
 
@@ -357,8 +354,8 @@ Progress per [`RakshAI_MVP_Sprint_Tracker.xlsx`](../planning/RakshAI_MVP_Sprint_
 5. **`Vendor.domain` is unique** — CSV import upserts on it. Two rows with the same domain update rather than duplicate.
 6. **The tracker says "Claude" and "streaming"; the code is OpenAI and non-streaming.** Both are deliberate (§6 ⑤⑥). Don't "fix" it as a bug.
 7. **No org/tenant boundary yet** — `GET /api/vendors` returns *all* vendors to *any* buyer. Fine for a single-tenant demo; must be addressed before a second customer.
-8. **Reset a broken demo with `npm run db:seed`** — it's idempotent.
-9. **A large part of the current tree is uncommitted.** Only two commits exist (`first commit`, `Week 1 Updates`); most Week 2–4 work is untracked/modified in the working directory. **Commit before anyone else clones.**
+8. **Invite links must land on a public route.** An invitee has no account yet, so `inviteUrl()` points at `/register?token=...`. Anything under `/vendor/*` sits behind the role guard in `middleware.ts` and would bounce them to `/login` — which is exactly the bug this used to have. If you move the acceptance screen, keep it outside the middleware matcher.
+9. **Reset a broken demo with `npm run db:seed`** — it's idempotent.
 
 ---
 
@@ -368,4 +365,4 @@ Progress per [`RakshAI_MVP_Sprint_Tracker.xlsx`](../planning/RakshAI_MVP_Sprint_
 2. Read [`WEEK2_PLAN.md`](../architecture/WEEK2_PLAN.md) end to end — the densest explanation of *why* the code looks like it does.
 3. Read `src/lib/questionnaire-config.ts`, then `src/lib/risk-summary.ts`. Those two files are the product.
 4. Trace one request all the way: `src/app/vendor/questionnaire/page.tsx` → `src/components/questionnaire-form.tsx` → `POST /api/questionnaire` → `missingRequired()` → status transition.
-5. Pick up **P0 item #2 (the dead invite link)** — self-contained, touches the invite/register/middleware seam, and teaches the whole onboarding flow.
+5. Pick up **P1 item #4 (no test suite)** — start by pinning the invite token path (hash, 7-day expiry, single-use) and `missingRequired()`. Both are pure functions, so you get value before wiring up a browser runner.
