@@ -2,7 +2,7 @@
 
 Unified **cyber risk, trust & exposure** platform. A buyer (CISO) discovers vendors, invites them, collects a security questionnaire, generates an **AI risk summary**, and approves or requests remediation — with a monitoring view over the whole portfolio.
 
-Built across a 4-week sprint (see `RakshAI_MVP_Sprint_Tracker.xlsx`).
+Built across a 4-week sprint (see [`docs/planning/RakshAI_MVP_Sprint_Tracker.xlsx`](docs/planning/RakshAI_MVP_Sprint_Tracker.xlsx)).
 
 ## Stack
 
@@ -12,7 +12,7 @@ Built across a 4-week sprint (see `RakshAI_MVP_Sprint_Tracker.xlsx`).
 - **OpenAI** via the **Vercel AI SDK** (`ai` + `@ai-sdk/openai`) — structured risk summaries
 - **Recharts** — monitoring charts
 - **Tailwind CSS** — styling
-- **Deployment** — Vercel + Neon (see `DEPLOYMENT.md`)
+- **Deployment** — Vercel + Neon (see [`docs/operations/DEPLOYMENT.md`](docs/operations/DEPLOYMENT.md))
 
 ## Features
 
@@ -136,11 +136,24 @@ prisma/
 - Route guards: middleware enforces role; the vendor layout enforces the NDA gate with a fresh DB read (edge middleware can't run Prisma).
 - Rate limiting on login / register / invite (in-memory — swap for Redis at scale).
 
+## Documentation
+
+Full docs live in [`docs/`](docs/README.md).
+
+| Doc | What it covers |
+|-----|----------------|
+| [Knowledge transfer](docs/onboarding/RakshAI_KT.md) | **Start here if you're new** — product, architecture decisions, done vs remaining, roadmap |
+| [API contracts](docs/architecture/API_CONTRACTS.md) | Request/response shapes for every endpoint |
+| [Architecture decisions](docs/architecture/WEEK2_PLAN.md) | Why the NDA gate isn't middleware, why invite tokens are hashed, etc. |
+| [Deployment](docs/operations/DEPLOYMENT.md) | Vercel + Neon production checklist |
+| [Demo script](docs/operations/DEMO_SCRIPT.md) | 5-7 min buyer + vendor walkthrough |
+| [Sprint tracker](docs/planning/RakshAI_MVP_Sprint_Tracker.xlsx) | 28-task planner, per-person boards, progress |
+
 ## Demo & deployment
 
-- **Demo walkthrough:** `DEMO_SCRIPT.md`
-- **Production deploy (Vercel):** `DEPLOYMENT.md`
+- **Demo walkthrough:** [`docs/operations/DEMO_SCRIPT.md`](docs/operations/DEMO_SCRIPT.md)
+- **Production deploy (Vercel):** [`docs/operations/DEPLOYMENT.md`](docs/operations/DEPLOYMENT.md)
 
 ## Sprint status
 
-Weeks 1–3 complete; Week 4 complete except the live Vercel deploy (`DEPLOYMENT.md` ready). See `RakshAI_MVP_Sprint_Tracker.xlsx`.
+Weeks 1–3 complete; Week 4 complete except the live Vercel deploy ([`DEPLOYMENT.md`](docs/operations/DEPLOYMENT.md) ready). See [`docs/planning/RakshAI_MVP_Sprint_Tracker.xlsx`](docs/planning/RakshAI_MVP_Sprint_Tracker.xlsx).

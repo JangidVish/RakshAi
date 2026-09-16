@@ -58,7 +58,7 @@ The product is scoped in 8 phases. The MVP deliberately ships **Phases 1, 2, 3 +
 | CSV | **papaparse** | Bulk vendor import |
 | Email | **Resend** (optional) | Falls back to console logging in dev |
 | Validation | **Zod** | Every API body + the AI output schema |
-| Hosting | Vercel + Neon | See `DEPLOYMENT.md` |
+| Hosting | Vercel + Neon | See [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) |
 
 > ⚠️ **Naming gotcha:** the sprint tracker says "Claude API integration". The code actually ships **OpenAI** via the Vercel AI SDK (`@ai-sdk/openai`). The provider is isolated behind one function (`generateRiskSummary` in `src/lib/risk-summary.ts`), so swapping providers is a ~10-line change.
 
@@ -113,11 +113,11 @@ prisma/
 
 **Docs already in the repo:**
 - `README.md` — setup + feature list
-- `API_CONTRACTS.md` — request/response shapes (written so interns could build UI against mocks before endpoints existed)
-- `WEEK2_PLAN.md` — the densest architecture-decision record in the repo; read it
-- `DEMO_SCRIPT.md` — 5–7 min demo walkthrough
-- `DEPLOYMENT.md` — Vercel + Neon production checklist
-- `RakshAI_MVP_Sprint_Tracker.xlsx` — 28-task sprint planner, per-intern boards, standup log, progress tracker
+- [`docs/architecture/API_CONTRACTS.md`](../architecture/API_CONTRACTS.md) — request/response shapes (written so interns could build UI against mocks before endpoints existed)
+- [`docs/architecture/WEEK2_PLAN.md`](../architecture/WEEK2_PLAN.md) — the densest architecture-decision record in the repo; read it
+- [`docs/operations/DEMO_SCRIPT.md`](../operations/DEMO_SCRIPT.md) — 5–7 min demo walkthrough
+- [`docs/operations/DEPLOYMENT.md`](../operations/DEPLOYMENT.md) — Vercel + Neon production checklist
+- [`docs/planning/RakshAI_MVP_Sprint_Tracker.xlsx`](../planning/RakshAI_MVP_Sprint_Tracker.xlsx) — 28-task sprint planner, per-intern boards, standup log, progress tracker
 
 ---
 
@@ -140,7 +140,7 @@ Schema is managed with **`prisma db push`** (no migration history files). Fine f
 
 ## 6. Key architecture decisions (and the reasoning)
 
-These are the decisions a new dev will otherwise re-litigate. All documented in `WEEK2_PLAN.md`.
+These are the decisions a new dev will otherwise re-litigate. All documented in [`WEEK2_PLAN.md`](../architecture/WEEK2_PLAN.md).
 
 ### ① The NDA gate is NOT in middleware
 `middleware.ts` runs on the **edge runtime — Prisma cannot run there.** A DB read in middleware means a bundling failure or shipping a DB driver to the edge.
@@ -211,7 +211,7 @@ Per-row try/catch, errors collected and returned as `{created, updated, skipped,
 | `RESEND_API_KEY` | optional | omit → emails log to the server console |
 | `MAIL_FROM` | optional | verified sender, e.g. `RakshAI <no-reply@domain.com>` |
 
-> ⚠️ `.env.example` is currently **missing `RESEND_API_KEY` and `MAIL_FROM`** even though `DEPLOYMENT.md` lists them. Add them (see §11).
+> ⚠️ `.env.example` is currently **missing `RESEND_API_KEY` and `MAIL_FROM`** even though [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) lists them. Add them (see §11).
 
 ---
 
@@ -255,7 +255,7 @@ npm run dev                 # http://localhost:3000
 ### End-to-end smoke test (the "one unbroken chain")
 Buyer imports CSV → invites a vendor → **dev console prints the link** → vendor registers → accepts NDA → guard opens `/vendor/questionnaire` → fills 4 sections (autosaves) → submits → `status = PENDING_REVIEW` → buyer generates the AI summary → approves → vendor emailed.
 
-For the stage demo, follow `DEMO_SCRIPT.md` (5–7 min, two browsers so you can switch roles instantly).
+For the stage demo, follow [`DEMO_SCRIPT.md`](../operations/DEMO_SCRIPT.md) (5–7 min, two browsers so you can switch roles instantly).
 
 ---
 
@@ -296,16 +296,16 @@ For the stage demo, follow `DEMO_SCRIPT.md` (5–7 min, two browsers so you can 
 - Full E2E flow testing (buyer + vendor paths)
 - UI polish: spacing, typography, mobile down to 375px
 - Error handling + empty states on every page (`error.tsx`, `global-error.tsx`, `not-found.tsx`)
-- `DEMO_SCRIPT.md` + `DEPLOYMENT.md` written
+- [`DEMO_SCRIPT.md`](../operations/DEMO_SCRIPT.md) + [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) written
 
 ### 🚧 Remaining — the immediate to-do list
 
 **P0 — blocking ship / demo**
 
-1. **Final Vercel deploy + custom domain + production QA** — the one open sprint task. `DEPLOYMENT.md` is written and ready; nobody has executed it. Covers: import the repo, set 8 env vars, `prisma db push` against prod, add the domain, update `NEXTAUTH_URL`, run the 7-item post-deploy checklist.
+1. **Final Vercel deploy + custom domain + production QA** — the one open sprint task. [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) is written and ready; nobody has executed it. Covers: import the repo, set 8 env vars, `prisma db push` against prod, add the domain, update `NEXTAUTH_URL`, run the 7-item post-deploy checklist.
 2. **The invite link is a dead end.** `src/lib/invite.ts` builds `${NEXTAUTH_URL}/vendor/accept?token=...`, but **`src/app/vendor/accept/` does not exist** — and `/vendor/*` is inside the middleware matcher, so an unauthenticated invitee is bounced to `/login`. The backend is complete (`GET /api/invite/[token]` validates; `POST /api/register` accepts `inviteToken`, links `user.vendorId`, marks `usedAt`), but **`src/app/register/page.tsx` never reads `?token=` and never sends `inviteToken`.**
    **Fix:** either build `/vendor/accept` as a public route (and exclude it from the middleware matcher), or point `inviteUrl()` at `/register?token=...` and have the register page read the token, call `GET /api/invite/[token]` to prefill, and pass `inviteToken` on submit. **Until this is fixed, vendor self-onboarding only works via a manually seeded linked vendor user.**
-3. **Add `RESEND_API_KEY` and `MAIL_FROM` to `.env.example`** — documented in `DEPLOYMENT.md` but missing from the template, so new devs silently get console-only email.
+3. **Add `RESEND_API_KEY` and `MAIL_FROM` to `.env.example`** — documented in [`DEPLOYMENT.md`](../operations/DEPLOYMENT.md) but missing from the template, so new devs silently get console-only email.
 
 **P1 — production hardening**
 
@@ -344,7 +344,7 @@ Cross-cutting candidates: SSO for buyers, **multi-tenant orgs** (today `User` ha
 | Yadnyesh | Intern A | Login/register pages, NDA acceptance page, vendor portal nav, risk summary review page, vendor detail page, locked phase states, UI polish |
 | Riddhi | Intern B | Buyer dashboard shell + vendor table, API wiring + skeletons, questionnaire form UI, approve/remediation flow, monitoring dashboard, error/empty states |
 
-Progress per `RakshAI_MVP_Sprint_Tracker.xlsx`: Week 1 7/7 · Week 2 7/7 · Week 3 6/6 · Week 4 7/8. Milestones through "full E2E flow tested" and "monitoring seeded" are ✅; "deployed to Vercel" and "MVP demo ready" are the two open boxes.
+Progress per [`RakshAI_MVP_Sprint_Tracker.xlsx`](../planning/RakshAI_MVP_Sprint_Tracker.xlsx): Week 1 7/7 · Week 2 7/7 · Week 3 6/6 · Week 4 7/8. Milestones through "full E2E flow tested" and "monitoring seeded" are ✅; "deployed to Vercel" and "MVP demo ready" are the two open boxes.
 
 ---
 
@@ -365,7 +365,7 @@ Progress per `RakshAI_MVP_Sprint_Tracker.xlsx`: Week 1 7/7 · Week 2 7/7 · Week
 ## 14. Where to start (first day on the project)
 
 1. Run §10 locally and log in as both roles.
-2. Read `WEEK2_PLAN.md` end to end — the densest explanation of *why* the code looks like it does.
+2. Read [`WEEK2_PLAN.md`](../architecture/WEEK2_PLAN.md) end to end — the densest explanation of *why* the code looks like it does.
 3. Read `src/lib/questionnaire-config.ts`, then `src/lib/risk-summary.ts`. Those two files are the product.
 4. Trace one request all the way: `src/app/vendor/questionnaire/page.tsx` → `src/components/questionnaire-form.tsx` → `POST /api/questionnaire` → `missingRequired()` → status transition.
 5. Pick up **P0 item #2 (the dead invite link)** — self-contained, touches the invite/register/middleware seam, and teaches the whole onboarding flow.
